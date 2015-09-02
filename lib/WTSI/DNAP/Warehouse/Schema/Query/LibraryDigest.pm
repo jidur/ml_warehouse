@@ -219,7 +219,7 @@ Only one of the run ids is required as expand_libs will find the others
 has 'library_id'   => ( isa        => 'ArrayRef[Int]',
                         is         => 'ro',
                         required   => 0,
-                        predicate  => '_has_library_id',
+                        default    => sub { [] },
 );
 
 =head2 id_run
@@ -377,7 +377,8 @@ sub _find_libs {
       if ( !$self->include_control && $fc_row->entity_type =~ /control|spike/smx ) {
         next;
       }
-      if ( $self->_has_library_id() && none {$_ == $fc_row->legacy_library_id} @{$self->library_id()} ) {
+      my @lids = @{$self->library_id()};
+      if ( @lids && none {$_ == $fc_row->legacy_library_id} @lids ) {
         next;
       }
 
