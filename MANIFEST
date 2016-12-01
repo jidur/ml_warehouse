@@ -1,6 +1,7 @@
 Build.PL
 Changes
 MANIFEST
+README
 lib/WTSI/DNAP/Warehouse/Schema.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/CgapAnalyte.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/CgapBiomaterial.pm
@@ -12,6 +13,7 @@ lib/WTSI/DNAP/Warehouse/Schema/Result/IseqProductMetric.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/IseqRunLaneMetric.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/IseqRunStatus.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/IseqRunStatusDict.pm
+lib/WTSI/DNAP/Warehouse/Schema/Result/PacBioRun.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/Sample.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/Study.pm
 lib/WTSI/DNAP/Warehouse/Schema/Result/StudyUser.pm
@@ -25,6 +27,7 @@ t/00-critic.t
 t/00-distribution.t
 t/00-pod.t
 t/10-Schema.t
+t/20-Schema-Query-IseqFlowcell.t
 t/20-Schema-Query-LibraryDigest.t
 t/data/fixtures/00-IseqRunStatusDict.yml
 t/data/fixtures/000-Sample.yml
@@ -34,3 +37,5 @@ t/data/fixtures/100-IseqRunLaneMetric.yml
 t/data/fixtures/100-IseqRunStatus.yml
 t/data/fixtures/100-StudyUser.yml
 t/data/fixtures/200-IseqProductMetric.yml
+META.yml
+META.json

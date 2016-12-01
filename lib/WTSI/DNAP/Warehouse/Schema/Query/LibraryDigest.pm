@@ -9,7 +9,7 @@ use List::MoreUtils qw/ none uniq /;
 our $VERSION = '0';
 
 Readonly::Hash   my %QUALITY_FILTERS => (
-                              'mqc'        => 'manual_qc',
+                              'mqc'        => 'qc',
                               'extrelease' => 'external_release',
                                         );
 
@@ -19,6 +19,8 @@ Readonly::Array  my @AGGREGATION_LEVEL => qw/
                                             /;
 
 Readonly::Scalar my $GROUP_KEY_NAME => 'group_key';
+
+Readonly::Scalar my $SSCAPE         => q[SQSCP];
 
 
 =head1 NAME
@@ -210,7 +212,8 @@ has 'earliest_run_status'  =>  ( isa        => 'Str',
 
 =head2 library_id
 
-An optional legacy_library_id.
+An optional legacy_library_id. Only libraries with a legacy_library_id
+are supported with this option.
 Should be used with the appropriate look back --num_days or --id_runs.
 Only one of the run ids is required as expand_libs will find the others
 
@@ -229,7 +232,7 @@ An option id_study_lims
 
 =cut
 
-has 'id_study_lims'               =>  ( isa        => 'Int',
+has 'id_study_lims'               =>  ( isa        => 'Str',
                                         is         => 'ro',
                                         required   => 0,
                                         predicate  => '_has_id_study_lims',
@@ -388,7 +391,7 @@ sub _find_libs {
 
     my $fc_row = $prow->iseq_flowcell;
     if ($fc_row) {
-      if (!$self->_accept($fc_row)) {
+      if (!$self->_accept($prow)) {
         next;
       }
       if (!$self->include_rad && $fc_row->is_r_and_d) {
@@ -400,8 +403,11 @@ sub _find_libs {
       if ( $self->_has_library_id() && none {$_ == $fc_row->legacy_library_id} @{$self->library_id()} ) {
         next;
       }
+      if ($fc_row->sample_consent_withdrawn){
+	next;
+      }
 
-      my $entity = $self->_create_entity($fc_row);
+       my $entity = $self->_create_entity($fc_row);
       if (!$entity->{'flowcell_key_value'}) {
         croak 'No flowcell key value';
       }
@@ -466,7 +472,7 @@ sub _add_entity {
         warn "Skipping entry with status $status\n";
         return;
       }
-      if (!$self->_accept($prow->iseq_flowcell)) {
+      if (!$self->_accept($prow)){
         warn "Skipping failed entry\n";
         return;
       }
@@ -496,12 +502,18 @@ sub _add_entity {
   return;
 }
 
+
 sub _accept {
-  my ($self, $fc_row) = @_;
+  my ($self, $row) = @_;
 
   my $quality_field = $self->filter ? $QUALITY_FILTERS{$self->filter} : q[];
+
   if ( $quality_field ) {
-    my $value = $fc_row->$quality_field;
+
+    ##extrelease is in the iseq_flowcell table
+    if ($quality_field ne 'qc') {$row=$row->iseq_flowcell}
+
+    my $value = $row->$quality_field;  #e.g. 0 1 NULL
     return $value || ($self->accept_undefined && !defined $value);
   }
   return 1;
@@ -537,6 +549,7 @@ sub  _get_study_rs {
 
 sub _create_entity {
   my ($self, $fc_row) = @_;
+
   my $entity = {
     'new_library_id'    => $fc_row->id_library_lims,
     'sample'            => $fc_row->sample_id,
@@ -544,7 +557,6 @@ sub _create_entity {
     'sample_common_name'=> $fc_row->sample_common_name,
     'sample_accession_number' => $fc_row->sample_accession_number,
     'id_lims'           => $fc_row->id_lims,
-    'manual_qc'         => $fc_row->manual_qc,
   };
   $entity->{'study'}                  = $fc_row->study_id; # safer, since study might be undefined
   $entity->{'study_accession_number'} = $fc_row->study_accession_number;
@@ -562,7 +574,7 @@ sub _create_entity {
     }
   }
 
-  my $library_field = 'legacy_library_id';
+  my $library_field = $fc_row->id_lims eq $SSCAPE ? 'legacy_library_id' : 'id_library_lims';
   $entity->{'library'} = $fc_row->$library_field;
   my $key = $self->group_by eq 'library' ? $library_field : 'id_sample_tmp';
   my $key_hash = {$key => $fc_row->$key};
